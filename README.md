@@ -1,32 +1,35 @@
-# Project Name
+# AKS Workload Identity - Sample
 
-(short, 1-3 sentenced, description of the project)
+`status on this repo = In-Progress`
+
+This sample creates an AKS Cluster, and deploys 2 applications which leverage workload identity to gain access to secrets in keyvault.
 
 ## Features
 
 This project framework provides the following features:
 
-* Feature 1
-* Feature 2
-* ...
+* AKS Cluster, optimally configured to leverage private link networking and as an OIDC issuer for Workload Identity
+* Key vaults, configured to be access securely
+* Workload Identity, via 2 sample applications deployed to the cluster
 
 ## Getting Started
 
 ### Prerequisites
 
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
+Interaction with Azure is done using the [Azure CLI](https://docs.microsoft.com/cli/azure/), [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) are required for accessing Kubernetes packages and installing them to the cluster.
 
 ### Installation
 
-(ideally very short)
+#### AKS
 
-- npm install [package name]
-- mvn install
-- ...
+Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quickly set up an AKS cluster in a virtual network.
+
+```bash
+az group create -n akswi -l EastUs
+az deployment group create -g akswi -u https://github.com/Azure/AKS-Construction/releases/download/0.8.2/main.json -p resourceName=akswi oidcIssuer=true
+az aks get-credentials -n aks-grid-stest -g rg-stest-selenium --overwrite-existing
+```
+
 
 ### Quickstart
 (Add steps to get up and running quickly)
