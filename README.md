@@ -27,7 +27,7 @@ Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quic
 ```bash
 az group create -n akswi -l EastUs
 az deployment group create -g akswi -u https://github.com/Azure/AKS-Construction/releases/download/0.8.2/main.json -p resourceName=akswi oidcIssuer=true
-az aks get-credentials -n aks-grid-stest -g rg-stest-selenium --overwrite-existing
+az aks get-credentials -n akswi -g akswi --overwrite-existing
 ```
 
 
