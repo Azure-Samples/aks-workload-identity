@@ -20,6 +20,8 @@ This project framework provides the following features:
 * Azure Key Vault, for application secret storage
 * Azure Workload Identity, for application access to the Key Vaults
 
+### Diagram
+
 ## Getting Started
 
 ### Prerequisites
@@ -49,7 +51,7 @@ The main.bicep deployment creates
 
 ```
 git clone https://github.com/Azure-Samples/aks-workload-identity.git
- cd aks-workload-identity
+cd aks-workload-identity
 ```
 
 2. Deploy the infrastructure to your azure subscription
@@ -57,6 +59,11 @@ git clone https://github.com/Azure-Samples/aks-workload-identity.git
 ```bash
 az group create -n akswi -l EastUs
 DEP=$(az deployment group create -g akswi -f main.bicep)
+OIDCISSUERURL=$(echo $DEP | jq -r '.properties.outputs.aksOidcIssuerUrl.value')
+APP1KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp1Name.value')
+APP2KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp2Name.value')
+APP3KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp3Name.value')
+
 az aks get-credentials -n aks-akswi -g akswi --overwrite-existing
 ```
 
@@ -66,22 +73,23 @@ az aks get-credentials -n aks-akswi -g akswi --overwrite-existing
 APP1=$(az ad sp create-for-rbac --name "AksWiApp1")
 APP1CLIENTID=$APP1
 
-APP2=$(az ad sp create-for-rbac --name "AksWiApp1")
+APP2=$(az ad sp create-for-rbac --name "AksWiApp2")
 APP2CLIENTID=$APP2
 ```
 
 5. Assign the AAD application permission to access secrets in the correct KeyVault
 
 ```bash
-az deployment group create -g akswi -f kvRbac.bicep -p kvName= kv-app1akswi app1clientId=$APP1CLIENTID
-az deployment group create -g akswi -f kvRbac.bicep -p kvName= kv-app2akswi app1clientId=$APP2CLIENTID
+az deployment group create -g akswi -f kvRbac.bicep -p kvName=kv-app1akswi app1clientId=$APP1CLIENTID
+az deployment group create -g akswi -f kvRbac.bicep -p kvName=kv-app2akswi app1clientId=$APP2CLIENTID
 ```
 
 6. Deploy the applications
 
 ```bash
-helm install charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$tenantId,azureWorkloadIdentity.clientId=$APP1CLIENTID
-helm install charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$tenantId,azureWorkloadIdentity.clientId=$APP2CLIENTID
+TENANTID=$(az account show --query tenantId -o tsv)
+helm install charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP1CLIENTID
+helm install charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2CLIENTID
 helm install charts/workloadIdApp3
 ```
 

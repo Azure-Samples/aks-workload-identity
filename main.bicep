@@ -37,6 +37,7 @@ module kvapp1 'keyvault.bicep' = {
     privateLinks: false
   }
 }
+output kvApp1Name string = kvapp1.outputs.keyvaultName
 
 module kvapp2 'keyvault.bicep' = {
   name: 'kvapp2${nameseed}'
@@ -49,6 +50,7 @@ module kvapp2 'keyvault.bicep' = {
     privateLinks: false
   }
 }
+output kvApp2Name string = kvapp2.outputs.keyvaultName
 
 module kvapp3 'keyvault.bicep' = {
   name: 'kvapp3${nameseed}'
@@ -61,6 +63,7 @@ module kvapp3 'keyvault.bicep' = {
     privateLinks: false
   }
 }
+output kvApp3Name string = kvapp3.outputs.keyvaultName
 
 resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' existing = {
   name: aksconst.outputs.aksClusterName

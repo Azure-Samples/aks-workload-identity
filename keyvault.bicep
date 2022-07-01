@@ -56,3 +56,4 @@ resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
     enablePurgeProtection: KeyVaultPurgeProtection ? true : json('null')
   }
 }
+output keyvaultName string = kv.name
