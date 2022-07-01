@@ -2,15 +2,23 @@
 
 `status on this repo = In-Progress`
 
-This sample creates an AKS Cluster, and deploys 2 applications which leverage workload identity to gain access to secrets in keyvault.
+This sample creates an AKS Cluster, and deploys 3 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
+
+Each application uses a slightly different authentication method;
+
+1. Uses Azure workload identity to access a KeyVault directly from the code in the container
+1. Uses the CSI Secrets driver for KeyVault with an Azure workload identity
+1. Uses the CSI Secrets driver for KeyVault with an Azure User Assigned Managed Identity
+
+This sample demonstrates the different methods for accessing Key Vaults and the multi-tenancy of application credential stores in AKS.
 
 ## Features
 
 This project framework provides the following features:
 
 * AKS Cluster, optimally configured to leverage private link networking and as an OIDC issuer for Workload Identity
-* Key vaults, configured to be access securely
-* Workload Identity, via 2 sample applications deployed to the cluster
+* Azure Key Vault, for application secret storage
+* Azure Workload Identity, for application access to the Key Vaults
 
 ## Getting Started
 
@@ -18,43 +26,72 @@ This project framework provides the following features:
 
 Interaction with Azure is done using the [Azure CLI](https://docs.microsoft.com/cli/azure/), [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) are required for accessing Kubernetes packages and installing them to the cluster.
 
+[JQ](https://stedolan.github.io/jq/download/) is used for transforming json objects in the script samples. It's a commonly used binary available in the Azure CLI, on GitHub runners etc.
+
+OIDC Issuer is a Preview AKS Feature, and [should be enabled](https://docs.microsoft.com/azure/aks/cluster-configuration#oidc-issuer-preview) on your subscription.
+
 ### Installation
 
 #### AKS
 
-Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quickly set up an AKS cluster in a virtual network.
+Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quickly set up an AKS cluster to the correct configuration. It has been referenced as a git submodule, and therefore easily consumed in [this projects bicep infrastructure file](main.bicep).
+
+The main.bicep deployment creates
+- 1 AKS Cluster
+- 3 Kubernetes namespaces
+- 3 Azure Key Vaults
+- The Azure Workload Identity Mutating Admission Webhook on the AKS cluster
+- A User Assigned Managed Identity for use with Application-3
+
+### Guide
+
+1. clone the repo
+
+```
+git clone https://github.com/Azure-Samples/aks-workload-identity.git
+ cd aks-workload-identity
+```
+
+2. Deploy the infrastructure to your azure subscription
 
 ```bash
 az group create -n akswi -l EastUs
-az deployment group create -g akswi -u https://github.com/Azure/AKS-Construction/releases/download/0.8.2/main.json -p resourceName=akswi oidcIssuer=true
-az aks get-credentials -n akswi -g akswi --overwrite-existing
+DEP=$(az deployment group create -g akswi -f main.bicep)
+az aks get-credentials -n aks-akswi -g akswi --overwrite-existing
 ```
 
+4. Create AAD applications for app1 and app2
 
-### Quickstart
-(Add steps to get up and running quickly)
+```bash
+APP1=$(az ad sp create-for-rbac --name "AksWiApp1")
+APP1CLIENTID=$APP1
 
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
+APP2=$(az ad sp create-for-rbac --name "AksWiApp1")
+APP2CLIENTID=$APP2
+```
 
+5. Assign the AAD application permission to access secrets in the correct KeyVault
 
-## Demo
+```bash
+az deployment group create -g akswi -f kvRbac.bicep -p kvName= kv-app1akswi app1clientId=$APP1CLIENTID
+az deployment group create -g akswi -f kvRbac.bicep -p kvName= kv-app2akswi app1clientId=$APP2CLIENTID
+```
 
-A demo app is included to show how to use the project.
+6. Deploy the applications
 
-To run the demo, follow these steps:
+```bash
+helm install charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$tenantId,azureWorkloadIdentity.clientId=$APP1CLIENTID
+helm install charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$tenantId,azureWorkloadIdentity.clientId=$APP2CLIENTID
+helm install charts/workloadIdApp3
+```
 
-(Add steps to start up the demo)
+7. Establish federated identity credentials for the workload identities
 
-1.
-2.
-3.
+```bash
+APPOBJECTID="$(az ad app show --id ${APPCLIENTID} --query id -otsv)"
+```
 
 ## Resources
 
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+- [Azure Workload Identity](https://github.com/Azure/azure-workload-identity)
+- [Azure Key Vault provider for Secrets Store CSI Driver](https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/)
