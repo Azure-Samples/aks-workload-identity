@@ -88,8 +88,8 @@ az deployment group create -g akswi -f kvRbac.bicep -p kvName=kv-app2akswi app1c
 
 ```bash
 TENANTID=$(az account show --query tenantId -o tsv)
-helm install charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP1CLIENTID
-helm install charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2CLIENTID
+helm install charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP1CLIENTID,keyvaultName=$APP1KVNAME
+helm install charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2CLIENTID,keyvaultName=$APP2KVNAME
 helm install charts/workloadIdApp3
 ```
 

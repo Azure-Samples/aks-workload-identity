@@ -19,5 +19,7 @@ azureWorkloadIdentity:
   clientId: ""
   tenantId: ""
 
+keyvaultName: ""
+
 podSecurityContext: {}
   # fsGroup: 2000
