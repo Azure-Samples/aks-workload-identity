@@ -15,3 +15,11 @@ resource kvAppGwSecretsUserRole 'Microsoft.Authorization/roleAssignments@2021-04
     principalId: appclientId
   }
 }
+
+resource arbitarySecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+  parent: kv
+  name: 'arbitarySecret'
+  properties: {
+    value: 'Squirrel-${guid(kv.id)}'
+  }
+}

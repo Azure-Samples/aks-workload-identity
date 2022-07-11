@@ -23,15 +23,8 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          volumeMounts:
-          # This mount is not used by the application but is required for the secretProviderClass
-            - mountPath: "mnt/secrets-store"
-              name: secrets-mount
-              readOnly: true
-      volumes:
-        - name: secrets-mount
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: "app2-azure-kv"
+          env:
+          - name: KEYVAULT_NAME
+            value: {{ .Values.keyvaultName }}
+          - name: SECRET_NAME
+            value: {{ .Values.secretName }}

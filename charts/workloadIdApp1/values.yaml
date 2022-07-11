@@ -3,9 +3,9 @@ replicaCount: 1
 nameOverride: ""
 
 image:
-  repository: mcr.microsoft.com/aks/e2e/library-busybox
+  repository: ghcr.io/azure/azure-workload-identity/msal-go
   pullPolicy: IfNotPresent #Always
-  tag: "master.210526.1" #image tag should be set in Chart.yaml - but where it's a strange tag, just override here
+  tag: "latest" #image tag should be set in Chart.yaml - but where it's a strange tag, just override here
 
 service:
   type: ClusterIP
@@ -19,7 +19,6 @@ azureWorkloadIdentity:
   clientId: ""
   tenantId: ""
 
-useCSIdriver: true
 keyvaultName: ""
 secretName: ""
 
