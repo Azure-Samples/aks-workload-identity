@@ -8,7 +8,7 @@ Each application uses a slightly different authentication method.
 
 The Azure CSI Secrets driver brings simplicity to the application developers, however does create more configuration in the Kubernetes manifest for the applications.
 
-Workload Identities have a narrowed scope of use, but currently only support Service Principals which require more operational effort to manage than Managed Identities.
+Workload Identities have a narrowed scope of use, but currently only support Service Principals which require more operational effort to manage than Managed Identities. Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
 
 App # | Identity | Uses CSI Secrets driver | Scope | Comments
 ----- | -------- | ----------------------- | ----- | --------
