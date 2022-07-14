@@ -66,6 +66,38 @@ module kvapp3 'keyvault.bicep' = {
 }
 output kvApp3Name string = kvapp3.outputs.keyvaultName
 
+module kvapp4 'keyvault.bicep' = {
+  name: 'kvapp4${nameseed}'
+  params: {
+    resourceName: 'app4${nameseed}'
+    KeyVaultPurgeProtection: false
+    KeyVaultSoftDelete: false
+    kvIPAllowlist: []
+    location: location
+    privateLinks: false
+  }
+}
+output kvApp4Name string = kvapp4.outputs.keyvaultName
+
+resource app3id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: 'id-app3'
+  location: location
+}
+output idApp3ClientId string = app3id.properties.clientId
+output idApp3Id string = app3id.id
+
+module kvApp3Rbac 'kvRbac.bicep' = {
+  name: 'App3KvRbac'
+  params: {
+    appclientId: app3id.properties.principalId
+    kvName: kvapp3.outputs.keyvaultName
+  }
+}
+
+resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' existing = {
+  name: aksconst.outputs.aksClusterName
+}
+
 module aadWorkloadId 'workloadId.bicep' = {
   name: 'aadWorkloadId-helm'
   params: {
@@ -73,3 +105,6 @@ module aadWorkloadId 'workloadId.bicep' = {
     location: location
   }
 }
+
+output aksUserNodePoolName string = 'npuser01' //hardcoding this for the moment.
+output nodeResourceGroup string = 'mc_${resourceGroup().name}_aks-${resourceGroup().name}_${location}' //hardcoding this for the moment.

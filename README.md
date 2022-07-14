@@ -1,9 +1,9 @@
 # AKS Workload Identity - Sample
 
-`status on this repo = In-Progress`
-`app1 = working, app2 = working, app3 = working`
+`status on this repo = In-Peer-Review`
+`app1 = working, app2 = working, app3 = working, app4 = working`
 
-This sample creates an AKS Cluster, and deploys 3 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
+This sample creates an AKS Cluster, and deploys 4 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
 
 Each application uses a slightly different authentication method;
 
@@ -11,9 +11,10 @@ App # | Identity | Uses CSI Secrets driver | Comments
 --- | -------- | ----------------------- | --------
 1 | Workload Identity (Service Principal) | :x: | Accesses the KeyVault directly from the code in the container
 2 | Workload Identity (Service Principal) | :heavy_check_mark: |
-3 | Managed Identity | :heavy_check_mark: | Leverages the AKS azureKeyvaultSecretsProvider identity
+3 | User Assigned Managed Identity | :heavy_check_mark: | 
+4 | Managed Identity | :heavy_check_mark: | Leverages the AKS managed azureKeyvaultSecretsProvider identity
 
-These samples demonstrate the different methods for accessing Key Vaults and the multi-tenancy of application credential stores in AKS.
+These samples demonstrate the different methods for accessing Key Vaults and the *multi-tenancy of application credential stores* in AKS.
 
 ## Features
 
@@ -43,8 +44,8 @@ Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quic
 
 The main.bicep deployment creates
 - 1 AKS Cluster, with CSI Secrets Managed Identity
-- 3 Kubernetes namespaces
-- 3 Azure Key Vaults
+- 4 Kubernetes namespaces
+- 4 Azure Key Vaults
 - The Azure Workload Identity Mutating Admission Webhook on the AKS cluster
 
 ### Guide
@@ -67,6 +68,8 @@ AKSCLUSTER=$(echo $DEP | jq -r '.properties.outputs.aksClusterName.value')
 APP1KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp1Name.value')
 APP2KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp2Name.value')
 APP3KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp3Name.value')
+APP4KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp4Name.value')
+APP3=$(echo $DEP | jq -r '.properties.outputs.idApp3ClientId.value')
 
 az aks get-credentials -n $AKSCLUSTER -g $RGNAME --overwrite-existing
 ```
@@ -89,9 +92,10 @@ az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP1KVNAME appc
 APP2SPID="$(az ad sp show --id $APP2 --query id -o tsv)"
 az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP2KVNAME appclientId=$APP2SPID
 
-CSICLIENTID=$(az aks show -g $RG --name $AKSNAME --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId -o tsv)
-CSIOBJECTID=$(az aks show -g $RG --name $AKSNAME --query addonProfiles.azureKeyvaultSecretsProvider.identity.objectId -o tsv)
-az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP3KVNAME appclientId=$CSIOBJECTID
+#App4
+CSICLIENTID=$(az aks show -g $RGNAME --name $AKSCLUSTER --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId -o tsv)
+CSIOBJECTID=$(az aks show -g $RGNAME --name $AKSCLUSTER --query addonProfiles.azureKeyvaultSecretsProvider.identity.objectId -o tsv)
+az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP4KVNAME appclientId=$CSIOBJECTID
 ```
 
 6. Deploy the applications
@@ -103,12 +107,14 @@ helm upgrade --install app1 charts/workloadIdApp1 --set azureWorkloadIdentity.te
 
 helm upgrade --install app2 charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2,keyvaultName=$APP2KVNAME,secretName=arbitarySecret -n app2 --create-namespace
 
-helm upgrade --install app3 charts/workloadIdApp3 --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$CSICLIENTID,keyvaultName=$APP3KVNAME,secretName=arbitarySecret -n app3 --create-namespace
+helm upgrade --install app3 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$APP3,keyvaultName=$APP3KVNAME,secretName=arbitarySecret -n app3 --create-namespace
+
+helm upgrade --install app4 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$CSICLIENTID,keyvaultName=$APP4KVNAME,secretName=arbitarySecret -n app4 --create-namespace
 ```
 
 6b. Checking for errors
 
-We're expecting that both applications that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD. At this point Application 3 should be working as it's identity configuration is much more straightforward.
+We're expecting that both applications that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD. At this point it should just be Application 4 working as it's identity configuration is the simplest.
 
 These errors however are useful to see what is expected to be provided when we created the Federated Identity.
 
@@ -157,7 +163,19 @@ echo $fedReqBody | jq -r
 az rest --method POST --uri $fedReqUrl --body "$fedReqBody"
 ```
 
-8. Seeing it working
+8. Assigning Managed Identity to the VMSS
+
+The last step in getting App3 working is to assign the User Assigned Managed Identity to the Virtual Machine Scaleset used by the AKS User nodepool.
+
+```bash
+NODEPOOLNAME=$(echo $DEP | jq -r '.properties.outputs.aksUserNodePoolName.value')
+RGNODE=$(echo $DEP | jq -r '.properties.outputs.nodeResourceGroup.value')
+APP3RESID=$(echo $DEP | jq -r '.properties.outputs.idApp3Id.value')
+VMSSNAME=$(az vmss list -g $RGNODE --query "[?tags.\"aks-managed-poolName\" == '$NODEPOOLNAME'].name" -o tsv)
+az vmss identity assign -g $RGNODE -n $VMSSNAME --identities $APP3RESID
+```
+
+9. Seeing all the apps working
 
 These scripts show the pod successfully accessing the secret in the respective application Key Vaults.
 
@@ -166,11 +184,13 @@ APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
 kubectl logs $APP1POD -n app1
 
 APP2POD=$(kubectl get pod -n app2 -o=jsonpath='{.items[0].metadata.name}')
-kubectl logs $APP2POD -n app2
 kubectl exec -it $APP2POD -n app2 -- cat /mnt/secrets-store/arbitarySecret
 
 APP3POD=$(kubectl get pod -n app3 -o=jsonpath='{.items[0].metadata.name}')
 kubectl exec -it $APP3POD -n app3 -- cat /mnt/secrets-store/arbitarySecret
+
+APP4POD=$(kubectl get pod -n app4 -o=jsonpath='{.items[0].metadata.name}')
+kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitarySecret
 ```
 
 ## Resources
