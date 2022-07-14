@@ -141,7 +141,7 @@ kubectl logs $APP1POD -n app1
 error: AADSTS70021: No matching federated identity record found for presented assertion. Assertion Issuer: 'https://oidc.prod-aks.azure.com/REDACTED/'. Assertion Subject: 'system:serviceaccount:default:app2-workloadidapp'. Assertion Audience: 'api://AzureADTokenExchange'.
 ```
 
-7. Establish federated identity credentials for the workload identities
+#### 7. Establish federated identity credentials for the workload identities
 
 App1 
 
@@ -179,7 +179,7 @@ echo $fedReqBody | jq -r
 az rest --method POST --uri $fedReqUrl --body "$fedReqBody"
 ```
 
-8. Assigning Managed Identity to the VMSS
+#### 8. Assigning Managed Identity to the VMSS
 
 The last step in getting App3 working is to assign the User Assigned Managed Identity to the Virtual Machine Scaleset used by the AKS User nodepool.
 
@@ -191,7 +191,7 @@ VMSSNAME=$(az vmss list -g $RGNODE --query "[?tags.\"aks-managed-poolName\" == '
 az vmss identity assign -g $RGNODE -n $VMSSNAME --identities $APP3RESID
 ```
 
-9. Seeing all the apps working
+#### 9. Seeing all the apps working
 
 These scripts show the pod successfully accessing the secret in the respective application Key Vaults.
 
@@ -213,7 +213,7 @@ kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitarySecret
 TODO: Sample output
 ```
 
-10. Cleanup
+#### 10. Cleanup
 
 `todo`
 
