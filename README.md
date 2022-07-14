@@ -7,12 +7,12 @@ This sample creates an AKS Cluster, and deploys 4 applications which use differe
 
 Each application uses a slightly different authentication method;
 
-App # | Identity | Uses CSI Secrets driver | Comments
---- | -------- | ----------------------- | --------
-1 | Workload Identity (Service Principal) | :x: | Accesses the KeyVault directly from the code in the container
-2 | Workload Identity (Service Principal) | :heavy_check_mark: |
-3 | User Assigned Managed Identity | :heavy_check_mark: | 
-4 | Managed Identity | :heavy_check_mark: | Leverages the AKS managed azureKeyvaultSecretsProvider identity
+App # | Identity | Uses CSI Secrets driver | Scope | Comments
+----- | -------- | ----------------------- | ----- | --------
+1 | Workload Identity (Service Principal) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
+2 | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
+3 | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
+4 | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
 
 These samples demonstrate the different methods for accessing Key Vaults and the *multi-tenancy of application credential stores* in AKS.
 
