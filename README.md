@@ -12,7 +12,7 @@ App # | Key Scenario | Identity | Uses CSI Secrets driver | Scope | Comments
 ----- | ------------ | -------- | ----------------------- | ----- | --------
 1 | Code focussed, few infra dependencies | Workload Identity (Service Principal) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
 2 | Infra focussed, provides silo'd abstraction | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
-3 | Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
+3 | VM Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
 4 | Simple and fast | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
 
 These samples demonstrate the different methods for accessing Key Vaults and the *multi-tenancy of application credential stores* in AKS.
@@ -34,7 +34,10 @@ The Azure CSI Secrets driver brings simplicity to the application developers, ho
 Enabling workload identity on an AKS cluster creates an OIDC issuer that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
 
 Workload Identities facilitate a narrowed scope of use over an identity that is leveraged at the VM level. However it only support Service Principals which require more operational effort to manage than Managed Identities. Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
+
 ### Diagram
+
+`todo`
 
 ## Getting Started
 
@@ -134,9 +137,9 @@ Application 3 will also require other actions before it'll work, as the VM's use
 ```bash
 APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
 kubectl logs $APP1POD -n app1
-```
 
-> error: AADSTS70021: No matching federated identity record found for presented assertion. Assertion Issuer: 'https://oidc.prod-aks.azure.com/REDACTED/'. Assertion Subject: 'system:serviceaccount:default:app2-workloadidapp'. Assertion Audience: 'api://AzureADTokenExchange'.
+error: AADSTS70021: No matching federated identity record found for presented assertion. Assertion Issuer: 'https://oidc.prod-aks.azure.com/REDACTED/'. Assertion Subject: 'system:serviceaccount:default:app2-workloadidapp'. Assertion Audience: 'api://AzureADTokenExchange'.
+```
 
 7. Establish federated identity credentials for the workload identities
 
@@ -205,6 +208,14 @@ kubectl exec -it $APP3POD -n app3 -- cat /mnt/secrets-store/arbitarySecret
 APP4POD=$(kubectl get pod -n app4 -o=jsonpath='{.items[0].metadata.name}')
 kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitarySecret
 ```
+
+```bash
+TODO: Sample output
+```
+
+10. Cleanup
+
+`todo`
 
 ## Resources
 
