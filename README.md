@@ -117,13 +117,13 @@ az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP4KVNAME appc
 ```bash
 TENANTID=$(az account show --query tenantId -o tsv)
 
-helm upgrade --install app1 charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP1,keyvaultName=$APP1KVNAME,secretName=arbitarySecret -n app1 --create-namespace
+helm upgrade --install app1 charts/workloadIdApp1 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP1,keyvaultName=$APP1KVNAME,secretName=arbitrarySecret -n app1 --create-namespace
 
-helm upgrade --install app2 charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2,keyvaultName=$APP2KVNAME,secretName=arbitarySecret -n app2 --create-namespace
+helm upgrade --install app2 charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2,keyvaultName=$APP2KVNAME,secretName=arbitrarySecret -n app2 --create-namespace
 
-helm upgrade --install app3 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$APP3,keyvaultName=$APP3KVNAME,secretName=arbitarySecret -n app3 --create-namespace
+helm upgrade --install app3 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$APP3,keyvaultName=$APP3KVNAME,secretName=arbitrarySecret -n app3 --create-namespace
 
-helm upgrade --install app4 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$CSICLIENTID,keyvaultName=$APP4KVNAME,secretName=arbitarySecret -n app4 --create-namespace
+helm upgrade --install app4 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$CSICLIENTID,keyvaultName=$APP4KVNAME,secretName=arbitrarySecret -n app4 --create-namespace
 ```
 
 #### 6. Checking the workloads
@@ -200,13 +200,13 @@ APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
 kubectl logs $APP1POD -n app1
 
 APP2POD=$(kubectl get pod -n app2 -o=jsonpath='{.items[0].metadata.name}')
-kubectl exec -it $APP2POD -n app2 -- cat /mnt/secrets-store/arbitarySecret
+kubectl exec -it $APP2POD -n app2 -- cat /mnt/secrets-store/arbitrarySecret
 
 APP3POD=$(kubectl get pod -n app3 -o=jsonpath='{.items[0].metadata.name}')
-kubectl exec -it $APP3POD -n app3 -- cat /mnt/secrets-store/arbitarySecret
+kubectl exec -it $APP3POD -n app3 -- cat /mnt/secrets-store/arbitrarySecret
 
 APP4POD=$(kubectl get pod -n app4 -o=jsonpath='{.items[0].metadata.name}')
-kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitarySecret
+kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitrarySecret
 ```
 
 ```bash
