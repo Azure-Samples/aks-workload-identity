@@ -15,7 +15,7 @@ module aksconst 'aks-construction/bicep/main.bicep' = {
     registries_sku: 'Premium'
     omsagent: true
     retentionInDays: 30
-    agentCount: 2
+    agentCount: 3
     
     //Workload Identity requires OidcIssuer to be configured on AKS
     oidcIssuer: true
@@ -25,6 +25,7 @@ module aksconst 'aks-construction/bicep/main.bicep' = {
   }
 }
 output aksOidcIssuerUrl string = aksconst.outputs.aksOidcIssuerUrl
+output aksClusterName string = aksconst.outputs.aksClusterName
 
 module kvapp1 'keyvault.bicep' = {
   name: 'kvapp1${nameseed}'
@@ -64,23 +65,6 @@ module kvapp3 'keyvault.bicep' = {
   }
 }
 output kvApp3Name string = kvapp3.outputs.keyvaultName
-
-resource app3id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
-  name: 'id-app3'
-  location: location
-}
-
-module kvApp3Rbac 'kvRbac.bicep' = {
-  name: 'App3KvRbac'
-  params: {
-    appclientId: app3id.properties.principalId
-    kvName: kvapp3.outputs.keyvaultName
-  }
-}
-
-resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' existing = {
-  name: aksconst.outputs.aksClusterName
-}
 
 module aadWorkloadId 'workloadId.bicep' = {
   name: 'aadWorkloadId-helm'

@@ -1,23 +1,25 @@
 # AKS Workload Identity - Sample
 
 `status on this repo = In-Progress`
-`app1 = working, app2 = in-progress, app3 = in-progress`
+`app1 = working, app2 = working, app3 = working`
 
 This sample creates an AKS Cluster, and deploys 3 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
 
 Each application uses a slightly different authentication method;
 
-1. Uses Azure workload identity to access a KeyVault directly from the code in the container
-1. Uses the CSI Secrets driver for KeyVault with an Azure workload identity
-1. Uses the CSI Secrets driver for KeyVault with an Azure User Assigned Managed Identity
+App # | Identity | Uses CSI Secrets driver | Comments
+--- | -------- | ----------------------- | --------
+1 | Workload Identity (Service Principal) | :x: | Accesses the KeyVault directly from the code in the container
+2 | Workload Identity (Service Principal) | :heavy_check_mark: |
+3 | Managed Identity | :heavy_check_mark: | Leverages the AKS azureKeyvaultSecretsProvider identity
 
-This sample demonstrates the different methods for accessing Key Vaults and the multi-tenancy of application credential stores in AKS.
+These samples demonstrate the different methods for accessing Key Vaults and the multi-tenancy of application credential stores in AKS.
 
 ## Features
 
 This project framework provides the following features:
 
-* AKS Cluster, optimally configured to leverage private link networking and as an OIDC issuer for Workload Identity
+* AKS Cluster, configured as an OIDC issuer for Workload Identity with the CSI Secrets driver installed
 * Azure Key Vault, for application secret storage
 * Azure Workload Identity, for application access to the Key Vaults
 
@@ -40,11 +42,10 @@ OIDC Issuer is a Preview AKS Feature, and [should be enabled](https://docs.micro
 Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quickly set up an AKS cluster to the correct configuration. It has been referenced as a git submodule, and therefore easily consumed in [this projects bicep infrastructure file](main.bicep).
 
 The main.bicep deployment creates
-- 1 AKS Cluster
+- 1 AKS Cluster, with CSI Secrets Managed Identity
 - 3 Kubernetes namespaces
 - 3 Azure Key Vaults
 - The Azure Workload Identity Mutating Admission Webhook on the AKS cluster
-- A User Assigned Managed Identity for use with Application-3
 
 ### Guide
 
@@ -58,31 +59,39 @@ cd aks-workload-identity
 2. Deploy the infrastructure to your azure subscription
 
 ```bash
-az group create -n akswi -l EastUs
-DEP=$(az deployment group create -g akswi -f main.bicep -o json)
+RGNAME=akswi
+az group create -n $RGNAME -l EastUs
+DEP=$(az deployment group create -g $RGNAME -f main.bicep -o json)
 OIDCISSUERURL=$(echo $DEP | jq -r '.properties.outputs.aksOidcIssuerUrl.value')
+AKSCLUSTER=$(echo $DEP | jq -r '.properties.outputs.aksClusterName.value')
 APP1KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp1Name.value')
 APP2KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp2Name.value')
 APP3KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp3Name.value')
 
-az aks get-credentials -n aks-akswi -g akswi --overwrite-existing
+az aks get-credentials -n $AKSCLUSTER -g $RGNAME --overwrite-existing
 ```
 
 4. Create AAD Service Principals (and applications) for app1 and app2
 
 ```bash
 APP1=$(az ad sp create-for-rbac --name "AksWiApp1" --query "appId" -o tsv)
-APP2=$(az ad sp create-for-rbac --name "AksWiApp2"  --query "appId" -o tsv)
+APP2=$(az ad sp create-for-rbac --name "AksWiApp2" --query "appId" -o tsv)
 ```
 
-5. Assign the AAD application permission to access secrets in the correct KeyVault
+5. AAD application permissions 
+
+We need to allow both of the Service Principals for APP1 and APP2 to access secrets in the correct KeyVault. APP3's Managed Identity was already granted RBAC during the bicep infrastructure creation.
 
 ```bash
 APP1SPID="$(az ad sp show --id $APP1 --query id -o tsv)"
-az deployment group create -g akswi -f kvRbac.bicep -p kvName=$APP1KVNAME appclientId=$APP1SPID
+az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP1KVNAME appclientId=$APP1SPID
 
 APP2SPID="$(az ad sp show --id $APP2 --query id -o tsv)"
-az deployment group create -g akswi -f kvRbac.bicep -p kvName=$APP2KVNAME appclientId=$APP2SPID
+az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP2KVNAME appclientId=$APP2SPID
+
+CSICLIENTID=$(az aks show -g $RG --name $AKSNAME --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId -o tsv)
+CSIOBJECTID=$(az aks show -g $RG --name $AKSNAME --query addonProfiles.azureKeyvaultSecretsProvider.identity.objectId -o tsv)
+az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP3KVNAME appclientId=$CSIOBJECTID
 ```
 
 6. Deploy the applications
@@ -94,12 +103,12 @@ helm upgrade --install app1 charts/workloadIdApp1 --set azureWorkloadIdentity.te
 
 helm upgrade --install app2 charts/workloadIdApp2 --set azureWorkloadIdentity.tenantId=$TENANTID,azureWorkloadIdentity.clientId=$APP2,keyvaultName=$APP2KVNAME,secretName=arbitarySecret -n app2 --create-namespace
 
-helm install charts/workloadIdApp3
+helm upgrade --install app3 charts/workloadIdApp3 --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$CSICLIENTID,keyvaultName=$APP3KVNAME,secretName=arbitarySecret -n app3 --create-namespace
 ```
 
 6b. Checking for errors
 
-We're expecting that both applications that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD.
+We're expecting that both applications that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD. At this point Application 3 should be working as it's identity configuration is much more straightforward.
 
 These errors however are useful to see what is expected to be provided when we created the Federated Identity.
 
@@ -150,14 +159,18 @@ az rest --method POST --uri $fedReqUrl --body "$fedReqBody"
 
 8. Seeing it working
 
+These scripts show the pod successfully accessing the secret in the respective application Key Vaults.
+
 ```bash
 APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
-kubectl logs $APP1POD
+kubectl logs $APP1POD -n app1
 
 APP2POD=$(kubectl get pod -n app2 -o=jsonpath='{.items[0].metadata.name}')
-kubectl logs $APP2POD
-kubectl exec -it $APP2POD -n $app2 -- bash
+kubectl logs $APP2POD -n app2
+kubectl exec -it $APP2POD -n app2 -- cat /mnt/secrets-store/arbitarySecret
 
+APP3POD=$(kubectl get pod -n app3 -o=jsonpath='{.items[0].metadata.name}')
+kubectl exec -it $APP3POD -n app3 -- cat /mnt/secrets-store/arbitarySecret
 ```
 
 ## Resources

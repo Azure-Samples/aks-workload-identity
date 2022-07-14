@@ -14,7 +14,9 @@ spec:
       labels:
         {{- include "app.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if eq .Values.azureKVIdentity.type "workload" -}}
       serviceAccountName: {{ include "app.serviceAccountName" . }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
