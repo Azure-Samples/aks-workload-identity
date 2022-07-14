@@ -1,4 +1,4 @@
-## [project-title] Changelog
+## [AKS Workload Identity - Sample] Changelog
 
 <a name="x.y.z"></a>
 # x.y.z (yyyy-mm-dd)
