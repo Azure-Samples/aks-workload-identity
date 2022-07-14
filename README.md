@@ -6,6 +6,8 @@
 This sample creates an AKS Cluster, and deploys 4 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
 Each application uses a slightly different authentication method.
 
+This repo provides Infrastructure code, scripts and application manifests to showcase complete end to end examples.
+
 The Azure CSI Secrets driver brings simplicity to the application developers, however does create more configuration in the Kubernetes manifest for the applications.
 
 Workload Identities have a narrowed scope of use, but currently only support Service Principals which require more operational effort to manage than Managed Identities. Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
