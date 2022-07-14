@@ -8,16 +8,12 @@ Each application uses a slightly different authentication method.
 
 This repo provides Infrastructure code, scripts and application manifests to showcase complete end to end examples.
 
-The Azure CSI Secrets driver brings simplicity to the application developers, however does create more configuration in the Kubernetes manifest for the applications.
-
-Workload Identities have a narrowed scope of use, but currently only support Service Principals which require more operational effort to manage than Managed Identities. Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
-
-App # | Identity | Uses CSI Secrets driver | Scope | Comments
------ | -------- | ----------------------- | ----- | --------
-1 | Workload Identity (Service Principal) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
-2 | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
-3 | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
-4 | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
+App # | Key Scenario | Identity | Uses CSI Secrets driver | Scope | Comments
+----- | ------------ | -------- | ----------------------- | ----- | --------
+1 | Code focussed, few infra dependencies | Workload Identity (Service Principal) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
+2 | Infra focussed, provides silo'd abstraction | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
+3 | Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
+4 | Simple and fast | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
 
 These samples demonstrate the different methods for accessing Key Vaults and the *multi-tenancy of application credential stores* in AKS.
 
@@ -29,6 +25,15 @@ This project framework provides the following features:
 * Azure Key Vault, for application secret storage
 * Azure Workload Identity, for application access to the Key Vaults
 
+### CSI Secrets driver
+
+The Azure CSI Secrets driver brings simplicity to the application developers, however does create more configuration in the Kubernetes manifest for the applications.
+
+### Azure Workload Identity
+
+Enabling workload identity on an AKS cluster creates an OIDC issuer that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
+
+Workload Identities facilitate a narrowed scope of use over an identity that is leveraged at the VM level. However it only support Service Principals which require more operational effort to manage than Managed Identities. Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
 ### Diagram
 
 ## Getting Started
@@ -56,14 +61,14 @@ The main.bicep deployment creates
 
 ### Guide
 
-1. clone the repo
+#### 1. clone the repo
 
 ```
 git clone https://github.com/Azure-Samples/aks-workload-identity.git
 cd aks-workload-identity
 ```
 
-2. Deploy the infrastructure to your azure subscription
+#### 2. Deploy the infrastructure to your azure subscription
 
 ```bash
 RGNAME=akswi
@@ -80,14 +85,14 @@ APP3=$(echo $DEP | jq -r '.properties.outputs.idApp3ClientId.value')
 az aks get-credentials -n $AKSCLUSTER -g $RGNAME --overwrite-existing
 ```
 
-4. Create AAD Service Principals (and applications) for app1 and app2
+#### 3. Create AAD Service Principals (and applications) for app1 and app2
 
 ```bash
 APP1=$(az ad sp create-for-rbac --name "AksWiApp1" --query "appId" -o tsv)
 APP2=$(az ad sp create-for-rbac --name "AksWiApp2" --query "appId" -o tsv)
 ```
 
-5. AAD application permissions 
+#### 4. AAD application permissions 
 
 We need to allow both of the Service Principals for APP1 and APP2 to access secrets in the correct KeyVault. APP3's Managed Identity was already granted RBAC during the bicep infrastructure creation.
 
@@ -104,7 +109,7 @@ CSIOBJECTID=$(az aks show -g $RGNAME --name $AKSCLUSTER --query addonProfiles.az
 az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP4KVNAME appclientId=$CSIOBJECTID
 ```
 
-6. Deploy the applications
+#### 5. Deploy the applications
 
 ```bash
 TENANTID=$(az account show --query tenantId -o tsv)
@@ -118,11 +123,13 @@ helm upgrade --install app3 charts/csiApp --set azureKVIdentity.tenantId=$TENANT
 helm upgrade --install app4 charts/csiApp --set azureKVIdentity.tenantId=$TENANTID,azureKVIdentity.clientId=$CSICLIENTID,keyvaultName=$APP4KVNAME,secretName=arbitarySecret -n app4 --create-namespace
 ```
 
-6b. Checking for errors
+#### 6. Checking the workloads
 
-We're expecting that both applications that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD. At this point it should just be Application 4 working as it's identity configuration is the simplest.
+At this point it should just be Application 4 working as it's identity configuration is the simplest. The identity was created and is managed by AKS, and it doesn't need any other steps to secure the authentication flow.
 
-These errors however are useful to see what is expected to be provided when we created the Federated Identity.
+We're expecting that both application 1 and 2 that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD yet. The errors from these application logs will however be useful to see what is expected to be provided when we created the Federated Identity.
+
+Application 3 will also require other actions before it'll work, as the VM's used in AKS need to be told about this identity (step 8).
 
 ```bash
 APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
