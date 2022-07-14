@@ -4,8 +4,11 @@
 `app1 = working, app2 = working, app3 = working, app4 = working`
 
 This sample creates an AKS Cluster, and deploys 4 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
+Each application uses a slightly different authentication method.
 
-Each application uses a slightly different authentication method;
+The Azure CSI Secrets driver brings simplicity to the application developers, however does create more configuration in the Kubernetes manifest for the applications.
+
+Workload Identities have a narrowed scope of use, but currently only support Service Principals which require more operational effort to manage than Managed Identities.
 
 App # | Identity | Uses CSI Secrets driver | Scope | Comments
 ----- | -------- | ----------------------- | ----- | --------
@@ -47,6 +50,7 @@ The main.bicep deployment creates
 - 4 Kubernetes namespaces
 - 4 Azure Key Vaults
 - The Azure Workload Identity Mutating Admission Webhook on the AKS cluster
+- A User Assiged Managed Identity
 
 ### Guide
 
