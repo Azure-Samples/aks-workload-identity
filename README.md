@@ -3,15 +3,14 @@
 `status on this repo = In-Peer-Review`
 `app1 = working, app2 = working, app3 = working, app4 = working`
 
-This sample creates an AKS Cluster, and deploys 4 applications which use different AzureAD identities to gain access to secrets in different Azure Key Vaults.
-Each application uses a slightly different authentication method.
+This sample creates an AKS Cluster, and deploys 4 applications which use different Azure Active Directory identities to gain secured access to secrets in different Azure Key Vaults. Each application uses a slightly different authentication method.
 
 This repo provides Infrastructure code, scripts and application manifests to showcase complete end to end examples.
 
 App # | Key Scenario | Identity | Uses CSI Secrets driver | Scope | Comments
 ----- | ------------ | -------- | ----------------------- | ----- | --------
 1 | Code focussed, few infra dependencies | Workload Identity (Service Principal) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
-2 | Infra focussed, provides silo'd abstraction | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
+2 | Infra focussed, provides abstraction | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
 3 | VM Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
 4 | Simple and fast | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
 
@@ -27,13 +26,15 @@ This project framework provides the following features:
 
 ### CSI Secrets driver
 
-The Azure CSI Secrets driver brings simplicity to the application developers, however does create more configuration in the Kubernetes manifest for the applications.
+The [Azure CSI Secrets driver](https://docs.microsoft.com/en-us/azure/aks/csi-secrets-store-driver) brings simplicity to the application developers by abstracting the Key Vault and mounting the secrets to the pod. It does however create more configuration in the Kubernetes manifests for the applications.
 
 ### Azure Workload Identity
 
-Enabling workload identity on an AKS cluster creates an OIDC issuer that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
+Enabling workload identity on an AKS cluster creates an [OIDC issuer](https://docs.microsoft.com/en-gb/azure/aks/cluster-configuration#oidc-issuer-preview) that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
 
-Workload Identities facilitate a narrowed scope of use over an identity that is leveraged at the VM level. However it only support Service Principals which require more operational effort to manage than Managed Identities. Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
+[Workload Identities](https://github.com/Azure/azure-workload-identity) facilitate a narrow scope of use of a service account for exclusive use by an application instead of an identity that is leveraged at the VM level that could be used by multiple applications. 
+
+Workload Identity only supports Service Principals which require more operational effort to manage than [Managed Identities](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/). Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
 
 ### Diagram
 
@@ -57,10 +58,9 @@ Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quic
 
 The main.bicep deployment creates
 - 1 AKS Cluster, with CSI Secrets Managed Identity
-- 4 Kubernetes namespaces
 - 4 Azure Key Vaults
 - The Azure Workload Identity Mutating Admission Webhook on the AKS cluster
-- A User Assiged Managed Identity
+- A User Assigned Managed Identity
 
 ### Guide
 
@@ -220,4 +220,5 @@ TODO: Sample output
 ## Resources
 
 - [Azure Workload Identity](https://github.com/Azure/azure-workload-identity)
+- [Azure AD workload identity federation with Kubernetes](https://blog.identitydigest.com/azuread-federate-k8s/)
 - [Azure Key Vault provider for Secrets Store CSI Driver](https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/)
