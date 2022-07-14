@@ -130,7 +130,7 @@ APP1APPOBJECTID="$(az ad app show --id $APP1 --query id -o tsv)"
 
 #Create federated identity credentials for use from an AKS Cluster Service Account
 fedReqUrl="https://graph.microsoft.com/beta/applications/$APP1APPOBJECTID/federatedIdentityCredentials"
-fedReqBody=$(jq -n --arg n "kubernetes-federated-credential-$APP1NAMESPACE-app1" \
+fedReqBody=$(jq -n --arg n "kubernetes-$AKSCLUSTER-$APP1NAMESPACE-app1" \
                    --arg i $OIDCISSUERURL \
                    --arg s "system:serviceaccount:$APP1NAMESPACE:$APP1SVCACCNT" \
                    --arg d "Kubernetes service account federated credential" \
@@ -148,7 +148,7 @@ APP2APPOBJECTID="$(az ad app show --id $APP2 --query id -o tsv)"
 
 #Create federated identity credentials for use from an AKS Cluster Service Account
 fedReqUrl="https://graph.microsoft.com/beta/applications/$APP2APPOBJECTID/federatedIdentityCredentials"
-fedReqBody=$(jq -n --arg n "kubernetes-federated-credential-$APP2NAMESPACE-app2" \
+fedReqBody=$(jq -n --arg n "kubernetes-$AKSCLUSTER-$APP2NAMESPACE-app2" \
                    --arg i $OIDCISSUERURL \
                    --arg s "system:serviceaccount:$APP2NAMESPACE:$APP2SVCACCNT" \
                    --arg d "Kubernetes service account federated credential" \
