@@ -26,20 +26,89 @@ This project framework provides the following features:
 
 ### CSI Secrets driver
 
-The [Azure CSI Secrets driver](https://docs.microsoft.com/en-us/azure/aks/csi-secrets-store-driver) brings simplicity to the application developers by abstracting the Key Vault and mounting the secrets to the pod. It does however create more configuration in the Kubernetes manifests for the applications.
+The [Azure CSI Secrets driver](https://docs.microsoft.com/azure/aks/csi-secrets-store-driver) brings simplicity to the application developers by abstracting the Key Vault and mounting the secrets to the pod. It does however create more configuration in the Kubernetes manifests for the applications.
 
 ### Azure Workload Identity
 
-Enabling workload identity on an AKS cluster creates an [OIDC issuer](https://docs.microsoft.com/en-gb/azure/aks/cluster-configuration#oidc-issuer-preview) that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
+Enabling workload identity on an AKS cluster creates an [OIDC issuer](https://docs.microsoft.com/azure/aks/cluster-configuration#oidc-issuer-preview) that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
 
 [Workload Identities](https://github.com/Azure/azure-workload-identity) facilitate a narrow scope of use of a service account for exclusive use by an application instead of an identity that is leveraged at the VM level that could be used by multiple applications. 
 
-Workload Identity only supports Service Principals which require more operational effort to manage than [Managed Identities](https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/). Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
+Workload Identity only supports Service Principals which require more operational effort to manage than [Managed Identities](https://docs.microsoft.com/azure/active-directory/managed-identities-azure-resources/). Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
 
-### Diagram
+### Diagrams
 
-`todo`
+#### App1
 
+```mermaid
+graph TB
+    subgraph AzureAD
+    aad(Azure AD OIDC endpoint)
+    end
+    subgraph Key Vaults
+    kv1(Azure KeyVault 1)
+    end
+    subgraph AKS Cluster
+    ko(OIDC-discovery-url)
+    end
+    subgraph AKS NodePool
+    App-1-->|1. request token|aad
+    aad-->|2. checks trust / validation|ko
+    aad-->|3. issue token|App-1
+    App-1-->|4. Auth|kv1
+    App-1-->|5. Get Secret|kv1
+    end
+    style App-1 fill:#F25022,stroke:#333,stroke-width:4px
+```
+
+#### App 2
+
+```mermaid
+graph TB
+    subgraph AzureAD
+    aad(Azure AD OIDC endpoint)
+    end
+    subgraph Key Vaults
+    kv2(Azure KeyVault 2)
+    end
+    subgraph AKS Cluster
+    ko(OIDC-discovery-url)
+    aad-->|2. checks trust / validation|ko
+    end
+    subgraph AKS NodePool - App2
+    csi(CSI provider pod)-->|6. Mount secrets|App-2
+    csi-->|1. request token|aad
+    aad-->|3. issue token|csi
+    csi-->|4. Auth|kv2
+    csi-->|5. Get Secret|kv2
+    end
+    style App-2 fill:#F25022,stroke:#333,stroke-width:4px
+```
+
+#### Apps 3 & 4
+
+```mermaid
+graph TB
+    subgraph IMDS
+    imds(IMDS endpoint)
+    end
+    subgraph AzureAD
+    ad(Azure AD)
+    imds-->|2. request token|ad
+    ad-->|3. issue token|imds
+    end
+    subgraph Key Vaults
+    kv(Azure KeyVault)
+    end
+    subgraph AKS NodePool - App3/4
+    imds-->|4. issue token|csi
+    csi(CSI provider pod)-->|7. Mount secret|App
+    csi-->|1. request token|imds
+    csi-->|5. Auth|kv
+    csi-->|6. Get Secret|kv
+    style App fill:#F25022,stroke:#333,stroke-width:4px
+    end
+```
 ## Getting Started
 
 ### Prerequisites
@@ -138,7 +207,7 @@ Application 3 will also require other actions before it'll work, as the VM's use
 APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
 kubectl logs $APP1POD -n app1
 
-error: AADSTS70021: No matching federated identity record found for presented assertion. Assertion Issuer: 'https://oidc.prod-aks.azure.com/REDACTED/'. Assertion Subject: 'system:serviceaccount:default:app2-workloadidapp'. Assertion Audience: 'api://AzureADTokenExchange'.
+#error: AADSTS70021: No matching federated identity record found for presented assertion. Assertion Issuer: 'https://oidc.prod-aks.azure.com/REDACTED/'. Assertion Subject: 'system:serviceaccount:default:app2-workloadidapp'. Assertion Audience: 'api://AzureADTokenExchange'.
 ```
 
 #### 7. Establish federated identity credentials for the workload identities
@@ -209,16 +278,20 @@ APP4POD=$(kubectl get pod -n app4 -o=jsonpath='{.items[0].metadata.name}')
 kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitrarySecret
 ```
 
-```bash
-TODO: Sample output
-```
+![secret output](docassets/output.png)
 
 #### 10. Cleanup
 
-`todo`
+```bash
+az group delete -n $RGNAME
+
+#Navigate to the Azure Portal, Azure Active Directory to delete the AksWiApp1 and AksWiApp2 service principals
+
+```
 
 ## Resources
 
 - [Azure Workload Identity](https://github.com/Azure/azure-workload-identity)
 - [Azure AD workload identity federation with Kubernetes](https://blog.identitydigest.com/azuread-federate-k8s/)
 - [Azure Key Vault provider for Secrets Store CSI Driver](https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/)
+- [Managed Identity FAQ](https://docs.microsoft.com/azure/active-directory/managed-identities-azure-resources/managed-identities-faq)
