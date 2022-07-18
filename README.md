@@ -3,7 +3,7 @@
 `status on this repo = In-Peer-Review`
 `app1 = working, app2 = working, app3 = working, app4 = working`
 
-This sample creates an AKS Cluster, and deploys 4 applications which use different Azure Active Directory identities to gain secured access to secrets in different Azure Key Vaults. Each application uses a slightly different authentication method.
+This sample creates an AKS Cluster, and deploys 4 applications which use different Azure Active Directory identities to gain secured access to secrets in different Azure Key Vaults. Each application uses a slightly different authentication method, and with different scopes of access.
 
 This repo provides Infrastructure code, scripts and application manifests to showcase complete end to end examples.
 
@@ -14,7 +14,7 @@ App # | Key Scenario | Identity | Uses CSI Secrets driver | Scope | Comments
 3 | VM Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
 4 | Simple and fast | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
 
-These samples demonstrate the different methods for accessing Key Vaults and the *multi-tenancy of application credential stores* in AKS.
+The purpose of this sample is to demonstrate the different methods for accessing Key Vaults and the *multi-tenancy* implications of accessing application credential stores in AKS.
 
 ## Features
 
@@ -36,9 +36,9 @@ Enabling workload identity on an AKS cluster creates an [OIDC issuer](https://do
 
 Workload Identity only supports Service Principals which require more operational effort to manage than [Managed Identities](https://docs.microsoft.com/azure/active-directory/managed-identities-azure-resources/). Workload Identity currently has [private preview support](https://github.com/Azure/azure-workload-identity/issues/325) for Managed Identities.
 
-### Diagrams
+### Auth Diagrams
 
-#### App1
+#### App1 (workload identity)
 
 ```mermaid
 graph TB
@@ -61,7 +61,7 @@ graph TB
     style App-1 fill:#F25022,stroke:#333,stroke-width:4px
 ```
 
-#### App 2
+#### App 2 (workload identity + csi)
 
 ```mermaid
 graph TB
@@ -85,7 +85,7 @@ graph TB
     style App-2 fill:#F25022,stroke:#333,stroke-width:4px
 ```
 
-#### Apps 3 & 4
+#### Apps 3 & 4 (managed identity + csi)
 
 ```mermaid
 graph TB
