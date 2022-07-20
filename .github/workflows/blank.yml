@@ -1,0 +1,13 @@
+name: Just Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reusable_workflow_job:
+    uses: Azure/AKS-Construction/.github/workflows/AKSC_Deploy.yml@main
+    with:
+      templateVersion: 0.8.7
+      rg: akswi
+      resourceName: akswi
+      templateParams: "enable_aad=true enableAzureRBAC=true registries_sku=Premium omsagent=true agentCount=3 oidcIssuer=true azureKeyvaultSecretsProvider=true"
