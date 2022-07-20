@@ -11,3 +11,7 @@ jobs:
       rg: akswi
       resourceName: akswi
       templateParams: "enable_aad=true enableAzureRBAC=true registries_sku=Premium omsagent=true agentCount=3 oidcIssuer=true azureKeyvaultSecretsProvider=true"
+    secrets:
+      AZURE_CLIENT_ID: ""
+      AZURE_TENANT_ID: ""
+      AZURE_SUBSCRIPTION_ID: ""
