@@ -1,8 +1,5 @@
 # AKS Workload Identity - Sample
 
-`status on this repo = In-Peer-Review`
-`app1 = working, app2 = working, app3 = working, app4 = working`
-
 This sample creates an AKS Cluster, and deploys 4 applications which use different Azure Active Directory identities to gain secured access to secrets in different Azure Key Vaults. Each application uses a slightly different authentication method, and with different scopes of access.
 
 This repo provides Infrastructure code, scripts and application manifests to showcase complete end to end examples.
@@ -13,6 +10,7 @@ App # | Key Scenario | Identity | Uses CSI Secrets driver | Scope | Comments
 2 | Infra focussed, provides abstraction | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
 3 | VM Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
 4 | Simple and fast | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
+5 | Infra focussed, provides abstraction and operational simplicity | Workload Identity (Managed Id) | :heavy_check_mark: | Service Account (Pod) | *In private preview, not Generally Available
 
 The purpose of this sample is to demonstrate the different methods for accessing Key Vaults and the *multi-tenancy* implications of accessing application credential stores in AKS.
 

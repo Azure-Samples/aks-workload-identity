@@ -21,63 +21,27 @@ module aksconst 'aks-construction/bicep/main.bicep' = {
     oidcIssuer: true
     
     //We'll also enable the CSI driver for Key Vault
-    azureKeyvaultSecretsProvider: true
+    keyVaultAksCSI : true
   }
 }
 output aksOidcIssuerUrl string = aksconst.outputs.aksOidcIssuerUrl
 output aksClusterName string = aksconst.outputs.aksClusterName
 
-module kvapp1 'keyvault.bicep' = {
-  name: 'kvapp1${nameseed}'
+module keyVaults 'aks-construction/bicep/keyvault.bicep' = [ for i in range(1,5) : {
+  name: 'kvapp${i}${nameseed}'
   params: {
-    resourceName: 'app1${nameseed}'
-    KeyVaultPurgeProtection: false
-    KeyVaultSoftDelete: false
-    kvIPAllowlist: []
+    resourceName: 'app${i}${nameseed}'
+    keyVaultPurgeProtection: false
+    keyVaultSoftDelete: false
     location: location
     privateLinks: false
   }
-}
-output kvApp1Name string = kvapp1.outputs.keyvaultName
-
-module kvapp2 'keyvault.bicep' = {
-  name: 'kvapp2${nameseed}'
-  params: {
-    resourceName: 'app2${nameseed}'
-    KeyVaultPurgeProtection: false
-    KeyVaultSoftDelete: false
-    kvIPAllowlist: []
-    location: location
-    privateLinks: false
-  }
-}
-output kvApp2Name string = kvapp2.outputs.keyvaultName
-
-module kvapp3 'keyvault.bicep' = {
-  name: 'kvapp3${nameseed}'
-  params: {
-    resourceName: 'app3${nameseed}'
-    KeyVaultPurgeProtection: false
-    KeyVaultSoftDelete: false
-    kvIPAllowlist: []
-    location: location
-    privateLinks: false
-  }
-}
-output kvApp3Name string = kvapp3.outputs.keyvaultName
-
-module kvapp4 'keyvault.bicep' = {
-  name: 'kvapp4${nameseed}'
-  params: {
-    resourceName: 'app4${nameseed}'
-    KeyVaultPurgeProtection: false
-    KeyVaultSoftDelete: false
-    kvIPAllowlist: []
-    location: location
-    privateLinks: false
-  }
-}
-output kvApp4Name string = kvapp4.outputs.keyvaultName
+}]
+output kvApp1Name string = keyVaults[1].outputs.keyVaultName
+output kvApp2Name string = keyVaults[2].outputs.keyVaultName
+output kvApp3Name string = keyVaults[3].outputs.keyVaultName
+output kvApp4Name string = keyVaults[4].outputs.keyVaultName
+output kvApp5Name string = keyVaults[5].outputs.keyVaultName
 
 resource app3id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: 'id-app3'
@@ -90,7 +54,22 @@ module kvApp3Rbac 'kvRbac.bicep' = {
   name: 'App3KvRbac'
   params: {
     appclientId: app3id.properties.principalId
-    kvName: kvapp3.outputs.keyvaultName
+    kvName: keyVaults[3].outputs.keyVaultName
+  }
+}
+
+resource app5id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: 'id-app5'
+  location: location
+}
+output idApp5ClientId string = app3id.properties.clientId
+output idApp5Id string = app3id.id
+
+module kvApp5Rbac 'kvRbac.bicep' = {
+  name: 'App5KvRbac'
+  params: {
+    appclientId: app5id.properties.principalId
+    kvName: keyVaults[5].outputs.keyVaultName
   }
 }
 
@@ -106,5 +85,5 @@ module aadWorkloadId 'workloadId.bicep' = {
   }
 }
 
-output aksUserNodePoolName string = 'npuser01' //hardcoding this for the moment.
-output nodeResourceGroup string = 'mc_${resourceGroup().name}_aks-${resourceGroup().name}_${location}' //hardcoding this for the moment.
+output aksUserNodePoolName string = 'npuser01' //[for nodepool in aks.properties.agentPoolProfiles: name] // 'npuser01' //hardcoding this for the moment.
+output nodeResourceGroup string = aksconst.outputs.aksNodeResourceGroup //'mc_${resourceGroup().name}_aks-${resourceGroup().name}_${location}' //hardcoding this for the moment.
