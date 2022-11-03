@@ -1,4 +1,4 @@
-# AKS Workload Identity - Sample
+# AKS Identities for KeyVault - App Samples
 
 This sample creates an AKS Cluster, and deploys 5 applications which use different Azure Active Directory identities to gain secured access to secrets in different Azure Key Vaults. Each application uses a slightly different authentication method, and with different scopes of access.
 
@@ -156,7 +156,7 @@ APP5=$(echo $DEP | jq -r '.properties.outputs.idApp5ClientId.value')
 az aks get-credentials -n $AKSCLUSTER -g $RGNAME --overwrite-existing
 ```
 
-#### 3. Create AAD Service Principals (and applications) for app2
+#### 3. Create AAD Service Principal (and application) for app2
 
 ```bash
 APP2=$(az ad sp create-for-rbac --name "AksWiApp2" --query "appId" -o tsv)
@@ -164,7 +164,7 @@ APP2=$(az ad sp create-for-rbac --name "AksWiApp2" --query "appId" -o tsv)
 
 #### 4. AAD application permissions on KeyVault
 
-We need to explicitly allow Service Principals access to secrets in the respective KeyVault. Apps using Managed Identities were already granted RBAC during the bicep infrastructure creation.
+We need to explicitly allow Service Principal access to secrets in the respective KeyVault. Apps using Managed Identities were already granted RBAC during the bicep infrastructure creation.
 
 ```bash
 APP2SPID="$(az ad sp show --id $APP2 --query id -o tsv)"
@@ -209,7 +209,7 @@ kubectl logs $APP2POD -n app2
 
 #### 7. Establish federated identity credentials for the workload identities
 
-App2
+##### App2
 
 ```bash 
 APP2SVCACCNT="app2-workloadidapp2"
