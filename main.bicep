@@ -82,9 +82,18 @@ module kvApp3Rbac 'kvRbac.bicep' = {
 resource app5id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: 'id-app5'
   location: location
+  
+  resource fedCreds 'federatedIdentityCredentials' = {
+    name: '${nameseed}-app5'
+    properties: {
+      audiences: aksconst.outputs.aksOidcFedIdentityProperties.audiences
+      issuer: aksconst.outputs.aksOidcFedIdentityProperties.issuer
+      subject: 'system:serviceaccount:app5:app5-workloadidapp5'
+    }
+  }
 }
-output idApp5ClientId string = app3id.properties.clientId
-output idApp5Id string = app3id.id
+output idApp5ClientId string = app5id.properties.clientId
+output idApp5Id string = app5id.id
 
 module kvApp5Rbac 'kvRbac.bicep' = {
   name: 'App5KvRbac'
@@ -94,10 +103,7 @@ module kvApp5Rbac 'kvRbac.bicep' = {
   }
 }
 
-resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' existing = {
-  name: aksconst.outputs.aksClusterName
-}
-
+@description('Uses helm to install Workload Identity. This could be done via an AKS property, but is currently in preview.')
 module aadWorkloadId 'workloadId.bicep' = {
   name: 'aadWorkloadId-helm'
   params: {

@@ -6,7 +6,6 @@ param tenantId string = subscription().tenantId
 param namespace string = 'azure-workload-identity-system'
 
 var contributor='b24988ac-6180-42a0-ab88-20f7382dd24c'
-var rbacWriter='a7ffa36f-339b-4b5c-8bdf-e2c188b2c0eb'
 var rbacClusterAdmin='b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b'
 
 var unformattedHelmCommands = '''
