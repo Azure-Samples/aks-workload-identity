@@ -255,6 +255,9 @@ kubectl exec -it $APP3POD -n app3 -- cat /mnt/secrets-store/arbitrarySecret
 
 APP4POD=$(kubectl get pod -n app4 -o=jsonpath='{.items[0].metadata.name}')
 kubectl exec -it $APP4POD -n app4 -- cat /mnt/secrets-store/arbitrarySecret
+
+APP5POD=$(kubectl get pod -n app5 -o=jsonpath='{.items[0].metadata.name}')
+kubectl exec -it $APP5POD -n app5 -- cat /mnt/secrets-store/arbitrarySecret
 ```
 
 ![secret output](docassets/output.png)
