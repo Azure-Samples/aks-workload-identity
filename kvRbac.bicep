@@ -6,7 +6,7 @@ resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' existing = {
 }
 
 var keyVaultSecretsUserRole = resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-resource kvAppGwSecretsUserRole 'Microsoft.Authorization/roleAssignments@2021-04-01-preview' = {
+resource kvAppGwSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: kv
   name: guid(kv.id, appclientId, keyVaultSecretsUserRole)
   properties: {

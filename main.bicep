@@ -1,9 +1,6 @@
 param nameseed string = 'akswi'
 param location string =  resourceGroup().location
 
-@description('This parameter controls the level of network controls configured on the Azure Key Vault')
-param networkLockedDown bool = true
-
 //---------Kubernetes Construction---------
 module aksconst 'aks-construction/bicep/main.bicep' = {
   name: 'aksconstruction'
@@ -37,11 +34,35 @@ module keyVaults 'aks-construction/bicep/keyvault.bicep' = [ for i in range(1,5)
     privateLinks: false
   }
 }]
-output kvApp1Name string = keyVaults[1].outputs.keyVaultName
-output kvApp2Name string = keyVaults[2].outputs.keyVaultName
-output kvApp3Name string = keyVaults[3].outputs.keyVaultName
-output kvApp4Name string = keyVaults[4].outputs.keyVaultName
-output kvApp5Name string = keyVaults[5].outputs.keyVaultName
+output kvApp1Name string = keyVaults[0].outputs.keyVaultName
+output kvApp2Name string = keyVaults[1].outputs.keyVaultName
+output kvApp3Name string = keyVaults[2].outputs.keyVaultName
+output kvApp4Name string = keyVaults[3].outputs.keyVaultName
+output kvApp5Name string = keyVaults[4].outputs.keyVaultName
+
+resource app1id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: 'id-app1'
+  location: location
+  
+  resource fedCreds 'federatedIdentityCredentials' = {
+    name: '${nameseed}-app1'
+    properties: {
+      audiences: aksconst.outputs.aksOidcFedIdentityProperties.audiences
+      issuer: aksconst.outputs.aksOidcFedIdentityProperties.issuer
+      subject: 'system:serviceaccount:app1:app1-workloadidapp1'
+    } //aksconst.outputs.aksOidcFedIdentityProperties
+  }
+}
+output idApp1ClientId string = app1id.properties.clientId
+output idApp1Id string = app1id.id
+
+module kvApp1Rbac 'kvRbac.bicep' = {
+  name: 'App1KvRbac'
+  params: {
+    appclientId: app1id.properties.principalId
+    kvName: keyVaults[0].outputs.keyVaultName
+  }
+}
 
 resource app3id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: 'id-app3'
@@ -54,7 +75,7 @@ module kvApp3Rbac 'kvRbac.bicep' = {
   name: 'App3KvRbac'
   params: {
     appclientId: app3id.properties.principalId
-    kvName: keyVaults[3].outputs.keyVaultName
+    kvName: keyVaults[2].outputs.keyVaultName
   }
 }
 
@@ -69,7 +90,7 @@ module kvApp5Rbac 'kvRbac.bicep' = {
   name: 'App5KvRbac'
   params: {
     appclientId: app5id.properties.principalId
-    kvName: keyVaults[5].outputs.keyVaultName
+    kvName: keyVaults[4].outputs.keyVaultName
   }
 }
 
@@ -86,4 +107,4 @@ module aadWorkloadId 'workloadId.bicep' = {
 }
 
 output aksUserNodePoolName string = 'npuser01' //[for nodepool in aks.properties.agentPoolProfiles: name] // 'npuser01' //hardcoding this for the moment.
-output nodeResourceGroup string = aksconst.outputs.aksNodeResourceGroup //'mc_${resourceGroup().name}_aks-${resourceGroup().name}_${location}' //hardcoding this for the moment.
+output nodeResourceGroup string = aksconst.outputs.aksNodeResourceGroup

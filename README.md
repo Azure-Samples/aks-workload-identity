@@ -6,7 +6,7 @@ This repo provides Infrastructure code, scripts and application manifests to sho
 
 App # | Key Scenario | Identity | Uses CSI Secrets driver | Scope | Comments
 ----- | ------------ | -------- | ----------------------- | ----- | --------
-1 | Code focussed, few infra dependencies | Workload Identity (Service Principal) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
+1 | Code focussed, few infra dependencies | Workload Identity (Managed Identity) | :x: | Service Account (Pod) | Accesses the KeyVault directly from the code in the container
 2 | Infra focussed, provides abstraction | Workload Identity (Service Principal) | :heavy_check_mark: | Service Account (Pod) |
 3 | VM Nodepool focussed | User Assigned Managed Identity | :heavy_check_mark: | AKS Node Pool
 4 | Simple and fast | Managed Identity | :heavy_check_mark: | All AKS Node Pools | Leverages the AKS managed azureKeyvaultSecretsProvider identity
@@ -150,26 +150,23 @@ APP1KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp1Name.value')
 APP2KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp2Name.value')
 APP3KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp3Name.value')
 APP4KVNAME=$(echo $DEP | jq -r '.properties.outputs.kvApp4Name.value')
+APP1=$(echo $DEP | jq -r '.properties.outputs.idApp1ClientId.value')
 APP3=$(echo $DEP | jq -r '.properties.outputs.idApp3ClientId.value')
 
 az aks get-credentials -n $AKSCLUSTER -g $RGNAME --overwrite-existing
 ```
 
-#### 3. Create AAD Service Principals (and applications) for app1 and app2
+#### 3. Create AAD Service Principals (and applications) for app2
 
 ```bash
-APP1=$(az ad sp create-for-rbac --name "AksWiApp1" --query "appId" -o tsv)
 APP2=$(az ad sp create-for-rbac --name "AksWiApp2" --query "appId" -o tsv)
 ```
 
 #### 4. AAD application permissions 
 
-We need to allow both of the Service Principals for APP1 and APP2 to access secrets in the correct KeyVault. APP3's Managed Identity was already granted RBAC during the bicep infrastructure creation.
+We need to explicitly allow Service Principals access to secrets in the correct KeyVault. Apps using Managed Identities were already granted RBAC during the bicep infrastructure creation.
 
 ```bash
-APP1SPID="$(az ad sp show --id $APP1 --query id -o tsv)"
-az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP1KVNAME appclientId=$APP1SPID
-
 APP2SPID="$(az ad sp show --id $APP2 --query id -o tsv)"
 az deployment group create -g $RGNAME -f kvRbac.bicep -p kvName=$APP2KVNAME appclientId=$APP2SPID
 
@@ -195,38 +192,20 @@ helm upgrade --install app4 charts/csiApp --set azureKVIdentity.tenantId=$TENANT
 
 #### 6. Checking the workloads
 
-At this point it should just be Application 4 working as it's identity configuration is the simplest. The identity was created and is managed by AKS, and it doesn't need any other steps to secure the authentication flow.
+At this point it should just be Application 1 and 4 working. App4 has the simplest identity configuration, the identity was created and is managed by AKS and it doesn't need any other steps to secure the authentication flow. App1 leverages a Managed Identity and any complexities of Managed Identities can be handled in the bicep IaC.
 
-We're expecting that both application 1 and 2 that require Federated Id won't be working as we haven't trusted the AKS Cluster from AzureAD yet. The errors from these application logs will however be useful to see what is expected to be provided when we created the Federated Identity.
+We're expecting that application 2 wpn't yet be working as it requires Federated Id configuration to trust the AKS Cluster. The errors from these application logs will however be useful to see what is expected to be provided when we created the Federated Identity.
 
 Application 3 will also require other actions before it'll work, as the VM's used in AKS need to be told about this identity (step 8).
 
 ```bash
-APP1POD=$(kubectl get pod -n app1 -o=jsonpath='{.items[0].metadata.name}')
-kubectl logs $APP1POD -n app1
+APP2POD=$(kubectl get pod -n app2 -o=jsonpath='{.items[0].metadata.name}')
+kubectl logs $APP2POD -n app2
 
 #error: AADSTS70021: No matching federated identity record found for presented assertion. Assertion Issuer: 'https://oidc.prod-aks.azure.com/REDACTED/'. Assertion Subject: 'system:serviceaccount:default:app2-workloadidapp'. Assertion Audience: 'api://AzureADTokenExchange'.
 ```
 
 #### 7. Establish federated identity credentials for the workload identities
-
-App1 
-
-```bash
-APP1SVCACCNT="app1-workloadidapp1"
-APP1NAMESPACE="app1"
-APP1APPOBJECTID="$(az ad app show --id $APP1 --query id -o tsv)"
-
-#Create federated identity credentials for use from an AKS Cluster Service Account
-fedReqUrl="https://graph.microsoft.com/beta/applications/$APP1APPOBJECTID/federatedIdentityCredentials"
-fedReqBody=$(jq -n --arg n "kubernetes-$AKSCLUSTER-$APP1NAMESPACE-app1" \
-                   --arg i $OIDCISSUERURL \
-                   --arg s "system:serviceaccount:$APP1NAMESPACE:$APP1SVCACCNT" \
-                   --arg d "Kubernetes service account federated credential" \
-             '{name:$n,issuer:$i,subject:$s,description:$d,audiences:["api://AzureADTokenExchange"]}')
-echo $fedReqBody | jq -r
-az rest --method POST --uri $fedReqUrl --body "$fedReqBody"
-```
 
 App2
 
