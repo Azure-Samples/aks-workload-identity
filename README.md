@@ -135,6 +135,10 @@ The main.bicep deployment creates
 git clone https://github.com/Azure-Samples/aks-workload-identity.git
 cd aks-workload-identity
 ```
+You might also have to clone the AKS construction repo if you didnt pull the subrepo
+```
+git clone https://github.com/Azure/AKS-Construction.git
+```
 
 #### 2. Deploy the infrastructure to your azure subscription
 
