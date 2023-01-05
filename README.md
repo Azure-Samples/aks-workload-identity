@@ -226,6 +226,7 @@ fedReqBody=$(jq -n --arg n "kubernetes-$AKSCLUSTER-$APP2NAMESPACE-app2" \
 echo $fedReqBody | jq -r
 az rest --method POST --uri $fedReqUrl --body "$fedReqBody"
 ```
+You might have to delete the pod for app2 so that a new pod with the federated identity in place can be created. 
 
 #### 8. Assigning Managed Identity to the VMSS
 
