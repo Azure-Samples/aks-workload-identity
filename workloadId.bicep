@@ -1,3 +1,6 @@
+//This file installs the workload-identity-webhook manually.
+//AKS is able to provide a managed experience on installing/updating the webhook.
+
 //For more information about the AAD Workload Identity mutating admission webhook : https://azure.github.io/azure-workload-identity/docs/installation/mutating-admission-webhook.html
 
 param aksName string
@@ -16,7 +19,7 @@ kubectl get all -n {0};
 '''
 var formattedHelmCommands = format(unformattedHelmCommands, namespace, tenantId)
 
-module aadWorkloadId 'br/public:deployment-scripts/aks-run-command:1.0.1' = {
+module aadWorkloadId 'br/public:deployment-scripts/aks-run-command:1.0.3' = {
   name: 'helmInstallWorkloadId'
   params: {
     aksName: aksName
