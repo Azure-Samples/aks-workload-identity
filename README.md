@@ -135,15 +135,15 @@ The main.bicep deployment creates
 #### 1. clone the repo
 
 ```bash
-git clone https://github.com/Azure-Samples/aks-workload-identity.git
+git clone https://github.com/Azure-Samples/aks-workload-identity.git --recurse-submodules
 cd aks-workload-identity
 ```
 
 #### 2. Deploy the infrastructure to your azure subscription
 
 ```bash
-RGNAME=akswi
-az group create -n $RGNAME -l EastUs
+RGNAME=akswiwe
+az group create -n $RGNAME -l WestEurope
 DEP=$(az deployment group create -g $RGNAME -f main.bicep -o json)
 OIDCISSUERURL=$(echo $DEP | jq -r '.properties.outputs.aksOidcIssuerUrl.value')
 AKSCLUSTER=$(echo $DEP | jq -r '.properties.outputs.aksClusterName.value')
