@@ -1,13 +1,5 @@
-## [AKS Workload Identity - Sample] Changelog
+# [AKS Workload Identity - Sample] Changelog
 
-<a name="x.y.z"></a>
-# x.y.z (yyyy-mm-dd)
+## 2023-03-08
 
-*Features*
-* ...
-
-*Bug Fixes*
-* ...
-
-*Breaking Changes*
-* ...
+* Shifted the Workload Identity through AKS feature instead of helm install

@@ -30,7 +30,7 @@ The [Azure CSI Secrets driver](https://docs.microsoft.com/azure/aks/csi-secrets-
 
 Enabling workload identity on an AKS cluster creates an [OIDC issuer](https://learn.microsoft.com/azure/aks/cluster-configuration#oidc-issuer) that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
 
-[Workload Identities](https://github.com/Azure/azure-workload-identity) facilitate a narrow scope of use of a service account for exclusive use by an application instead of an identity that is leveraged at the VM level that could be used by multiple applications. 
+[Workload Identities](https://github.com/Azure/azure-workload-identity) facilitate a narrow scope of use of a service account for exclusive use by an application instead of an identity that is leveraged at the VM level that could be used by multiple applications.
 
 ### Auth Diagrams
 
@@ -105,13 +105,16 @@ graph TB
     style App fill:#F25022,stroke:#333,stroke-width:4px
     end
 ```
+
 ## Getting Started
 
 ### Prerequisites
 
 Interaction with Azure is done using the [Azure CLI](https://docs.microsoft.com/cli/azure/), [Helm](https://helm.sh/docs/intro/install/) and [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) are required for accessing Kubernetes packages and installing them to the cluster.
 
-[JQ](https://stedolan.github.io/jq/download/) is used for transforming json objects in the script samples. It's a commonly used binary available in the Azure CLI, on GitHub runners etc.
+[JQ](https://stedolan.github.io/jq/download/) is used for transforming json objects in the script samples. It's a commonly used binary available in the Azure CloudShell, on GitHub runners etc.
+
+[Helm](https://helm.sh/) is used to install (and package) Kubernetes applications. It's a commonly used binary available in the Azure CloudShell, on GitHub runners etc.
 
 OIDC Issuer is an AKS Feature, and is required for Workload Identity to function.
 
@@ -122,25 +125,25 @@ OIDC Issuer is an AKS Feature, and is required for Workload Identity to function
 Using [AKS Construction](https://github.com/Azure/Aks-Construction), we can quickly set up an AKS cluster to the correct configuration. It has been referenced as a git submodule, and therefore easily consumed in [this projects bicep infrastructure file](main.bicep).
 
 The main.bicep deployment creates
-- 1 AKS Cluster, with CSI Secrets Managed Identity
-- 5 Azure Key Vaults
-- 3 User Assigned Managed Identities
-- The Azure Workload Identity Mutating Admission Webhook on the AKS cluster
+
+* 1 AKS Cluster, with CSI Secrets Managed Identity and managed Workload Identity Mutating Admission Webhook
+* 5 Azure Key Vaults
+* 3 User Assigned Managed Identities
 
 ### Guide
 
 #### 1. clone the repo
 
-```
-git clone https://github.com/Azure-Samples/aks-workload-identity.git
+```bash
+git clone https://github.com/Azure-Samples/aks-workload-identity.git --recurse-submodules
 cd aks-workload-identity
 ```
 
 #### 2. Deploy the infrastructure to your azure subscription
 
 ```bash
-RGNAME=akswi
-az group create -n $RGNAME -l EastUs
+RGNAME=akswiwe
+az group create -n $RGNAME -l WestEurope
 DEP=$(az deployment group create -g $RGNAME -f main.bicep -o json)
 OIDCISSUERURL=$(echo $DEP | jq -r '.properties.outputs.aksOidcIssuerUrl.value')
 AKSCLUSTER=$(echo $DEP | jq -r '.properties.outputs.aksClusterName.value')
@@ -194,7 +197,7 @@ helm upgrade --install app5 charts/workloadIdApp2 --set nameOverride=workloadida
 
 #### 6. Checking the workloads
 
-At this point 3 out of 5 applications should be working. 
+At this point 3 out of 5 applications should be working.
 
 We're expecting that application 2 won't yet be working as it is missing Federated Id configuration to trust the AKS Cluster. The errors from these application logs will however be useful to see what is expected to be provided when we created the Federated Identity.
 
@@ -211,7 +214,7 @@ kubectl logs $APP2POD -n app2
 
 ##### App2
 
-```bash 
+```bash
 APP2SVCACCNT="app2-workloadidapp2"
 APP2NAMESPACE="app2"
 APP2APPOBJECTID="$(az ad app show --id $APP2 --query id -o tsv)"
@@ -273,7 +276,7 @@ az group delete -n $RGNAME
 
 ## Resources
 
-- [Azure Workload Identity](https://github.com/Azure/azure-workload-identity)
-- [Azure AD workload identity federation with Kubernetes](https://blog.identitydigest.com/azuread-federate-k8s/)
-- [Azure Key Vault provider for Secrets Store CSI Driver](https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/)
-- [Managed Identity FAQ](https://docs.microsoft.com/azure/active-directory/managed-identities-azure-resources/managed-identities-faq)
+* [Azure Workload Identity](https://github.com/Azure/azure-workload-identity)
+* [Azure AD workload identity federation with Kubernetes](https://blog.identitydigest.com/azuread-federate-k8s/)
+* [Azure Key Vault provider for Secrets Store CSI Driver](https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/)
+* [Managed Identity FAQ](https://docs.microsoft.com/azure/active-directory/managed-identities-azure-resources/managed-identities-faq)

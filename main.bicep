@@ -14,6 +14,9 @@ module aksconst 'aks-construction/bicep/main.bicep' = {
     retentionInDays: 30
     agentCount: 3
     
+    //Managed workload identity 
+    workloadIdentity: true
+
     //Workload Identity requires OidcIssuer to be configured on AKS
     oidcIssuer: true
     
@@ -50,7 +53,7 @@ resource app1id 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-pre
       audiences: aksconst.outputs.aksOidcFedIdentityProperties.audiences
       issuer: aksconst.outputs.aksOidcFedIdentityProperties.issuer
       subject: 'system:serviceaccount:app1:app1-workloadidapp1'
-    } //aksconst.outputs.aksOidcFedIdentityProperties
+    }
   }
 }
 output idApp1ClientId string = app1id.properties.clientId
@@ -103,14 +106,14 @@ module kvApp5Rbac 'kvRbac.bicep' = {
   }
 }
 
-@description('Uses helm to install Workload Identity. This could be done via an AKS property, but is currently in preview.')
-module aadWorkloadId 'workloadId.bicep' = {
-  name: 'aadWorkloadId-helm'
-  params: {
-    aksName: aksconst.outputs.aksClusterName
-    location: location
-  }
-}
+// @description('Uses helm to install Workload Identity. This could be done via an AKS property, but is currently in preview.')
+// module aadWorkloadId 'workloadId.bicep' = {
+//   name: 'aadWorkloadId-helm'
+//   params: {
+//     aksName: aksconst.outputs.aksClusterName
+//     location: location
+//   }
+// }
 
 output aksUserNodePoolName string = 'npuser01' //[for nodepool in aks.properties.agentPoolProfiles: name] // 'npuser01' //hardcoding this for the moment.
 output nodeResourceGroup string = aksconst.outputs.aksNodeResourceGroup

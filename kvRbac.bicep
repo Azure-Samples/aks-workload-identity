@@ -1,7 +1,7 @@
 param kvName string
 param appclientId string
 
-resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' existing = {
+resource kv 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: kvName
 }
 
@@ -16,7 +16,7 @@ resource kvAppGwSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }
 
-resource arbitrarySecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+resource arbitrarySecret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: kv
   name: 'arbitrarySecret'
   properties: {
