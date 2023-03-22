@@ -197,7 +197,7 @@ helm upgrade --install app5 charts/workloadIdApp2 --set nameOverride=workloadida
 
 #### 6. Checking the workloads
 
-At this point 3 out of 5 applications should be working.
+After the pods are running, 3 out of 5 applications should be working.
 
 We're expecting that application 2 won't yet be working as it is missing Federated Id configuration to trust the AKS Cluster. The errors from these application logs will however be useful to see what is expected to be provided when we created the Federated Identity.
 
