@@ -28,7 +28,7 @@ The [Azure CSI Secrets driver](https://docs.microsoft.com/azure/aks/csi-secrets-
 
 ### Azure Workload Identity
 
-Enabling workload identity on an AKS cluster creates an [OIDC issuer](https://learn.microsoft.com/azure/aks/cluster-configuration#oidc-issuer) that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
+Workload identity on an AKS cluster leverages the [AKS OIDC issuer](https://learn.microsoft.com/azure/aks/cluster-configuration#oidc-issuer) capability that can then be used to authenticate a workload running to an OIDC provider (Azure Active Directory in this example).
 
 [Workload Identities](https://github.com/Azure/azure-workload-identity) facilitate a narrow scope of use of a service account for exclusive use by an application instead of an identity that is leveraged at the VM level that could be used by multiple applications.
 
